@@ -1,0 +1,20 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">
+            <strong>INVENTARIO</strong>
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <RadzenPanelMenu>
+            <RadzenPanelMenuItem Text="Inicio" Path="/" Icon="home" />
+            <RadzenPanelMenuItem Text="Armamento" Path="armamento" Icon="folder_special" />
+            <RadzenPanelMenuItem Text="Municion" Path="municion" Icon="star_rate" />
+             <RadzenPanelMenuItem Text="Detalles Armamentos" Path="detallesarmamentos" Icon="star_rate" />
+        </RadzenPanelMenu>
+    </nav>
+</div>

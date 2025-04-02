@@ -1,0 +1,180 @@
+﻿@page "/detallesarmamentos"
+@using Radzen
+@using Radzen.Blazor
+@using Models
+@inject IDetallesArmamentoController Controller
+@inject Controllers.DetallesArmamentoController Controller
+@inject DialogService DialogService
+
+<h3>DetallesArmamentos</h3>
+<RadzenDataGrid @ref="Tabla"
+                AllowFiltering="true"
+                AllowPaging="true"
+                AllowSorting="true"
+                AllowColumnResize="true"
+                ColumnWidth="150px"
+                Density="Density.Default"
+                PageSize="5"
+                Responsive="true"
+                EditMode="DataGridEditMode.Single"
+                Data="Data"
+                TItem="DetallesArmamento"
+                EmptyText="Sin registros para mostrar"
+                ShowPagingSummary="true"
+                PageSizeOptions=@PageSizeOptions
+                PagingSummaryFormat=@PagingSummaryFormat
+                PageSizeText="Registros por página"
+                ClearFilterText="Borrar"
+                ApplyFilterText="Aplicar"
+                FilterText="Filtro"
+                FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                FilterMode="FilterMode.Simple"
+                Page="@(a=>DisableInsert=false)"
+                PageSizeChanged="@(a=>DisableInsert=false)">
+    <HeaderTemplate>
+        <RadzenButton Disabled="@(!Agregar)" ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Agregar" Click="@InsertRow" />
+    </HeaderTemplate>
+    <Columns>
+        <RadzenDataGridColumn Property="@nameof(vDetallesArmamento.Tipo)" Title="Tipo de Arma">
+            <EditTemplate Context="DetallesArmamento">
+                <RadzenDropDown @bind-Value="DetallesArmamento.IdArma" Data="@Armamentos" TextProperty="Tipo" ValueProperty="IdArma" Style="width:100%; display: block;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(DetallesArmamento.NPiston)" Title="Numero Piston">
+            <EditTemplate Context="DetallesArmamento">
+                <RadzenTextBox @bind-Value=DetallesArmamento.NPiston />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(DetallesArmamento.NCierre)" Title="Numero Cierre">
+            <EditTemplate Context="DetallesArmamento">
+                <RadzenTextBox @bind-Value=DetallesArmamento.NCierre />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(DetallesArmamento.Cargador)" Title="Cargador">
+            <EditTemplate Context="DetallesArmamento">
+                <RadzenTextBox @bind-Value=DetallesArmamento.Cargador />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Context="DetallesArmamento" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Title="Acciones" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+            <Template Context="DetallesArmamento">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(a=>EditRow(DetallesArmamento))" />
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@(x=>DeleteRow(DetallesArmamento))" />
+            </Template>
+            <EditTemplate Context="DetallesArmamento">
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" aria-label="Save" Click="@(x=>SaveRow(DetallesArmamento))" />
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" aria-label="Cancel" Click="@(x=>CancelEdit(DetallesArmamento))" />
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Click="@(x=>DeleteRow(DetallesArmamento))" class="rz-my-1 rz-ms-1" aria-label="Delete" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+    </Columns>
+</RadzenDataGrid>
+<RadzenDialog />
+
+@code {
+    public RadzenDataGrid<DetallesArmamento>? Tabla { get; set; }
+    public List<DetallesArmamento>? Data { get; set; }
+    public IEnumerable<Armamento>? Armamentos { get; set; }
+    public IEnumerable<int> PageSizeOptions { get; set; } = new[] { 2, 5, 10, 100 };
+    public string PagingSummaryFormat { get; set; } = "Página {0} de {1} (Total {2} Registros)";
+    public bool DisableInsert { get; set; } = false;
+    public bool Agregar { get; set; } = true;
+    
+    protected override Task OnInitializedAsync()
+    {
+        cargarGrid();
+        return base.OnInitializedAsync();
+    }
+    
+    private async void cargarGrid()
+    {
+        Data = await Controller.GetDetallesArmamentos();
+        StateHasChanged();
+    }
+    private async Task LoadArmamento()
+    {
+        Armamentos = await Controller.GetArmamentos();
+    }
+    async Task InsertRow()
+    {
+        if (Tabla != null)
+            await Tabla.InsertRow(new());
+        DisableInsert = false;
+    }
+    async Task EditRow(DetallesArmamento Entidad)
+    {
+        if (Tabla != null)
+            await Tabla.EditRow(Entidad);
+        DisableInsert = true;
+    }
+    async Task DeleteRow(DetallesArmamento Entidad)
+    {
+        if (Tabla != null)
+            if (await Controller.Delete(Entidad))
+            {
+                await ShowNotify("Registro Anulado con exito.");
+                cargarGrid();
+                return;
+            }
+        await ShowNotify("El registro no se anuló");
+        cargarGrid();
+        DisableInsert = true;
+    }
+    async Task SaveRow(DetallesArmamento Entidad)
+    {
+        if (Entidad.IdArma > 0)
+        {
+            //Actualizar
+            if (await Controller.Update(Entidad))
+            {
+                await ShowNotify("Registro Actualizado con exito.");
+                cargarGrid();
+                return;
+            }
+            await ShowNotify("El registro no se actulizó");
+        }
+        else
+        {
+            //Insertar
+            if (await Controller.Insert(Entidad) > 0)
+            {
+                await ShowNotify("Registro agregado con exito.");
+                cargarGrid();
+                return;
+            }
+            await ShowNotify("El registro no se agregó");
+        }
+        cargarGrid();
+        CancelEdit(Entidad);
+        
+
+        await Tabla.Reload();
+        await Task.Delay(1);
+
+    }
+    async void CancelEdit(DetallesArmamento Entidad)
+    {
+        if (Tabla != null)
+            Tabla.CancelEditRow(Entidad);
+        DisableInsert = false;
+    }
+    private async Task ShowNotify(string Notificacion)
+    {
+        var result = await DialogService.OpenAsync("Notificación", ds =>
+    @<RadzenStack Gap="1rem">
+        <RadzenLabel>@Notificacion</RadzenLabel>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
+            <RadzenButton Text="OK" Click="@(()=>ds.Close())" ButtonStyle="ButtonStyle.Light" />
+        </RadzenStack>
+    </RadzenStack>
+    ,
+        new DialogOptions
+        {
+            Width = "350px",
+            Height = "250px",
+            CloseDialogOnOverlayClick = false
+        });
+    }
+
+
+}
